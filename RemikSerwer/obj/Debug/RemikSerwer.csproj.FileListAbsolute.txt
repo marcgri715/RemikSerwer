@@ -1,0 +1,6 @@
+D:\Projekty\Visual\RemikSerwer\RemikSerwer\bin\Debug\RemikSerwer.exe.config
+D:\Projekty\Visual\RemikSerwer\RemikSerwer\obj\Debug\RemikSerwer.csprojResolveAssemblyReference.cache
+D:\Projekty\Visual\RemikSerwer\RemikSerwer\bin\Debug\RemikSerwer.exe
+D:\Projekty\Visual\RemikSerwer\RemikSerwer\bin\Debug\RemikSerwer.pdb
+D:\Projekty\Visual\RemikSerwer\RemikSerwer\obj\Debug\RemikSerwer.exe
+D:\Projekty\Visual\RemikSerwer\RemikSerwer\obj\Debug\RemikSerwer.pdb
