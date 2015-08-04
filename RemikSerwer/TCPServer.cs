@@ -44,20 +44,21 @@ namespace RemikSerwer
             while (true)
             {
                 TcpClient newClient = listener.AcceptTcpClient();
+                PlayerData newPlayer = new PlayerData(newClient);
                 if (playersList.Count < LIMIT)
                 {
-                    PlayerData player = new PlayerData(newClient);
-                    playersList.Add(player);
-                    serverLobby.Add(player);
+                    playersList.Add(newPlayer);
+                    serverLobby.Add(newPlayer);
                     Thread playerThread = new Thread(Service);
-                    playerThread.Start(player);
+                    playerThread.Start(newPlayer);
+                    SendMessageToPlayer(newPlayer, "CONNECT", "SUCCESS");
                     //wyślij że połączono
                     //pobierz nazwę użytkownika
-                    //wyślij początkowe info o pokojach
                 }
                 else
                 {
                     //wyślij że brakło miejsca
+                    SendMessageToPlayer(newPlayer, "CONNECT", "FULL");
                 }
                 foreach (PlayerData player in playersList)
                 {
@@ -93,7 +94,7 @@ namespace RemikSerwer
                 {
                     received = client.GetStream().Read(buffer, 0, 1024);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                 }
 
@@ -114,7 +115,8 @@ namespace RemikSerwer
         private void DecipherString(string message, PlayerData player)
         {
             string[] messageParts = message.Split('|');
-            int index;
+            int index, slot; 
+            Room foundRoom;
             switch (messageParts[0])
             {
                 case "LOGIN":
@@ -136,6 +138,7 @@ namespace RemikSerwer
                         response += room.getRoomInfo();
                     }
                     SendMessageToPlayer(player, "ROOMLIST", response);
+                    Console.WriteLine("Sent roomlist to player {0} [{1}].", player.login, player.address);
                     break;
                 case "CREATE":
                     try
@@ -174,24 +177,105 @@ namespace RemikSerwer
                     }
                     break;
                 case "JOIN":
-                    JoinRoom(player, int.Parse(messageParts[1]), false);
+                    index = int.Parse(messageParts[1]);
+                    if (JoinRoom(player, index))
+                    {
+                        Console.WriteLine("{0} has joined room {1}.", player.login, index);
+                    }
+                    else
+                    {
+                        Console.WriteLine("{0} has failed to join room {1}.", player.login, index);
+                    }
                     break;
-                case "INVITED":
-                    JoinRoom(player, int.Parse(messageParts[1]), true);
+                case "PASSWORD":
+                    index = int.Parse(messageParts[1]);
+                    if (JoinRoom(player, index, messageParts[2]))
+                    {
+                        Console.WriteLine("{0} has joined room {1}.", player.login, index);
+                    }
+                    else
+                    {
+                        Console.WriteLine("{0} has failed to join room {1}.", player.login, index);
+                    }
                     break;
                 case "CHAT":
                     index = int.Parse(messageParts[1]);
                     SendMessageToRoom(listOfRooms.Find(x => x.getId() == index), "CHAT", messageParts[2]);
+                    Console.WriteLine("[Room {0}] {1}: {2}", index, player.login, messageParts[2]);
+                    break;
+                case "LEAVE":
+                    index = int.Parse(messageParts[1]);
+                    foundRoom = listOfRooms.Find(x => x.getId() == index);
+                    foundRoom.playerLeavingRoom(player);
+                    if (foundRoom.getLobby().Count == 0)
+                    {
+                        listOfRooms.Remove(foundRoom);
+                        SendMessageToAllPlayers("ROOMREMOVED",foundRoom.getId().ToString());
+                    }
+                    serverLobby.Add(player);
+                    Console.WriteLine("Player {0} left room {1}.", player.login, index);
+                    break;
+                case "TAKESLOT":
+                    index = int.Parse(messageParts[1]);
+                    slot = int.Parse(messageParts[2]);
+                    foundRoom = listOfRooms.Find(x => x.getId() == index);
+                    if (foundRoom.putPlayerInSlot(player, slot))
+                    {
+                        SendMessageToRoom(foundRoom,"SLOTTAKEN",slot.ToString() + "|" + player.login, true);
+                        Console.WriteLine("Player {0} took slot {1} in room {2}.", player.login, slot, index);
+                    }
+                    else
+                    {
+                        SendMessageToPlayer(player, "TAKESLOT", "FAILED");
+                    }
+                    break;
+                case "FREESLOT":
+                    index = int.Parse(messageParts[1]);
+                    slot = int.Parse(messageParts[2]);
+                    foundRoom = listOfRooms.Find(x => x.getId() == index);
+                    foundRoom.playerLeavingSlot(slot);
+                    SendMessageToRoom(foundRoom, "SLOTFREED", slot.ToString(), true);
+                    Console.WriteLine("Player {0} left slot {1} in room {2}.", player.login, slot, index);
+                    break;
+                case "SETTINGS":
+                    switch (messageParts[1])
+                    {
+                        case "KICK":
+                            index = int.Parse(messageParts[2]);
+                            string toBeKicked = messageParts[3];
+                            foundRoom = listOfRooms.Find(x => x.getId() == index);
+                            foreach (PlayerData kicked in foundRoom.getLobby())
+                            {
+                                if (kicked.login == toBeKicked)
+                                {
+                                    foundRoom.getLobby().Remove(kicked);
+                                    serverLobby.Add(kicked);
+                                    SendMessageToPlayer(kicked, "KICKED", "");
+                                    SendMessageToRoom(foundRoom, "KICK", toBeKicked);
+                                    break;
+                                }
+                            }
+                            break;
+                            //todo: password/max players/time limit/scores
+                    }
+                    break;
+                default:
+                    Console.WriteLine("Unknown client command: \"{0}\" by {1} [{2}]", message, player.login, player.address);
                     break;
             }
         }
 
 
 
-        private bool JoinRoom(PlayerData player, int index, bool isInvited)
+        private bool JoinRoom(PlayerData player, int index, string password = null)
         {
             Room selected = listOfRooms.Find(x => x.getId() == index);
-            if (!selected.privateFlag || isInvited)
+            bool allowed = true;
+            if (selected.hasPassword)
+            {
+                allowed = selected.checkPassword(password);
+            }
+            if (allowed)
             {
                 player.currentRoom = index;
                 selected.addPlayerToRoom(player);
@@ -204,11 +288,8 @@ namespace RemikSerwer
                 serverLobby.Remove(player);
                 return true;
             }
-            else
-            {
-                SendMessageToPlayer(player, "JOIN", "DECLINED");
-                return false;
-            }
+            SendMessageToPlayer(player, "JOIN", "DECLINED");
+            return false;
         }
 
         private void SendMessageToPlayer(PlayerData player, string command, string message)
@@ -220,7 +301,7 @@ namespace RemikSerwer
             {
                 player.GetClient().Client.Send(Encoding.UTF8.GetBytes(toSend), SocketFlags.None);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }
@@ -236,16 +317,22 @@ namespace RemikSerwer
                 {
                     player.GetClient().Client.Send(Encoding.UTF8.GetBytes(toSend), SocketFlags.None);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                 }
             }
         }
 
-        private void SendMessageToRoom(Room room, string command, string message)
+        private void SendMessageToRoom(Room room, string command, string message, bool sendToLobby = false)
         {
             string toSend = command + "|" + message;
-            foreach (PlayerData player in room.getLobby())
+            List<PlayerData> lobby;
+            lobby = room.getLobby();
+            if (sendToLobby)
+            {
+                lobby.AddRange(serverLobby);
+            }
+            foreach (PlayerData player in lobby)
             {
                 if (!player.GetClient().Connected)
                     return;
@@ -253,7 +340,7 @@ namespace RemikSerwer
                 {
                     player.GetClient().Client.Send(Encoding.UTF8.GetBytes(toSend), SocketFlags.None);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                 }
             }

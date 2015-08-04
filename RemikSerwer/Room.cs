@@ -13,17 +13,22 @@ namespace RemikSerwer
         private int timeLimit;
         private int playersMax;
         private int id;
-        public bool privateFlag;
+        private string password;
+        public bool hasPassword;
+        private PlayerData host;
+        /*TODO logika gry*/
 
         public Room(PlayerData creator, int pId)
         {
             lobby = new List<PlayerData>();
+            host = creator;
             lobby.Add(creator);
             timeLimit = 0;
             playersMax = 2;
-            privateFlag = false;
+            hasPassword = false;
             slots = new PlayerData[2];
             creator.currentRoom = id = pId;
+            password = "";
         }
 
         public string getRoomInfo()
@@ -44,7 +49,7 @@ namespace RemikSerwer
                 }
                 info += '|';
             }
-            if (privateFlag)
+            if (hasPassword)
             {
                 info += "1";
             }
@@ -68,6 +73,24 @@ namespace RemikSerwer
                 slots[index] = null;
             }
             lobby.Remove(leavingPlayer);
+            if (leavingPlayer == host)
+            {
+                if (lobby.Count > 0)
+                {
+                    host = null;
+                    foreach (PlayerData newHost in slots)
+                    {
+                        if (newHost != null)
+                        {
+                            host = newHost;
+                        }
+                    }
+                    if (host == null)
+                    {
+                        host = lobby[0];
+                    }
+                }
+            }
         }
 
         public bool putPlayerInSlot(PlayerData player, int index)
@@ -96,6 +119,11 @@ namespace RemikSerwer
         public List<PlayerData> getLobby()
         {
             return lobby;
+        }
+
+        public bool checkPassword(string pwd)
+        {
+            return (password == pwd);
         }
     }
 }
