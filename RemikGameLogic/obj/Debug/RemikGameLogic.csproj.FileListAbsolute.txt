@@ -1,0 +1,4 @@
+D:\Projekty\Visual\RemikSerwer\RemikGameLogic\bin\Debug\RemikGameLogic.dll
+D:\Projekty\Visual\RemikSerwer\RemikGameLogic\bin\Debug\RemikGameLogic.pdb
+D:\Projekty\Visual\RemikSerwer\RemikGameLogic\obj\Debug\RemikGameLogic.dll
+D:\Projekty\Visual\RemikSerwer\RemikGameLogic\obj\Debug\RemikGameLogic.pdb

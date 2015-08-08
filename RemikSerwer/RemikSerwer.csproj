@@ -50,6 +50,12 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\RemikGameLogic\RemikGameLogic.csproj">
+      <Project>{6036c9ad-66e8-4a05-a70d-5c78595d35d2}</Project>
+      <Name>RemikGameLogic</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
