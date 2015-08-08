@@ -16,6 +16,7 @@ namespace RemikSerwer
         private string password;
         public bool hasPassword;
         private PlayerData host;
+        private bool[] slotReadiness;
         /*TODO logika gry*/
 
         public Room(PlayerData creator, int pId)
@@ -27,6 +28,8 @@ namespace RemikSerwer
             playersMax = 2;
             hasPassword = false;
             slots = new PlayerData[2];
+            slotReadiness = new bool[2];
+            slotReadiness[0] = slotReadiness[1] = false;
             creator.currentRoom = id = pId;
             password = "";
         }
@@ -124,6 +127,63 @@ namespace RemikSerwer
         public bool checkPassword(string pwd)
         {
             return (password == pwd);
+        }
+
+        public void setMaxPlayers(int newValue)
+        {
+            PlayerData[] newSlots = new PlayerData[newValue];
+            int limit = newValue < playersMax ? newValue : playersMax;
+            for (int i = 0; i < limit; i++)
+            {
+                newSlots[i] = slots[i];
+            }
+            slots = newSlots;
+            playersMax = newValue;
+            slotReadiness = new bool[playersMax];
+            for (int i = 0; i < playersMax; i++)
+            {
+                slotReadiness[i] = false;
+            }
+        }
+
+        public void setTime(int newValue)
+        {
+            timeLimit = newValue;
+        }
+
+        public void setScore(int slot, int newValue)
+        {
+            //TODO: set score after creating logic
+        }
+
+        public bool setPassword(string newPassword)
+        {
+            password = newPassword;
+            if (newPassword.Length == 0)
+            {
+                hasPassword = false;
+                return false;
+            }
+            hasPassword = true;
+            return true;
+        }
+
+        public bool switchReady(int slot)
+        {
+            slotReadiness[slot] = !slotReadiness[slot];
+            for (int i = 0; i < slotReadiness.Length; i++)
+            {
+                if (slotReadiness[i]==false)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        public int GetMaxPlayers()
+        {
+            return playersMax;
         }
     }
 }
