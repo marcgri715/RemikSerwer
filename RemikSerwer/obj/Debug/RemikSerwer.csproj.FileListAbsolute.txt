@@ -4,3 +4,5 @@ D:\Projekty\Visual\RemikSerwer\RemikSerwer\bin\Debug\RemikSerwer.exe
 D:\Projekty\Visual\RemikSerwer\RemikSerwer\bin\Debug\RemikSerwer.pdb
 D:\Projekty\Visual\RemikSerwer\RemikSerwer\obj\Debug\RemikSerwer.exe
 D:\Projekty\Visual\RemikSerwer\RemikSerwer\obj\Debug\RemikSerwer.pdb
+D:\Projekty\Visual\RemikSerwer\RemikSerwer\bin\Debug\GameLogic.exe
+D:\Projekty\Visual\RemikSerwer\RemikSerwer\bin\Debug\GameLogic.pdb
